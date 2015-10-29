@@ -32,7 +32,7 @@ app.get('/assets/swordyside.png', function(req, res){
   res.sendfile('assets/swordyside.png');
 });
 
-var port = process.env.PORT || 3000;
+var port = process.env.PORT || 8080;
 
 var player_arr = [];
 var contains_player = false;

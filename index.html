@@ -176,7 +176,7 @@ function update() {
 	    socket.emit('player_data', [player_id, player.x, player.y]);
 	    socket.on('player_data', function(pd){
             other_player_arr = pd;
-            tick = game.time.now + 100
+            tick = game.time.now + 10
         });
 	    
 	}
