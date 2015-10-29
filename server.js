@@ -82,6 +82,6 @@ io.on('connection', function(socket){
   });
 });
 
-http.listen(18320, function(){
+http.listen($port, function(){
   console.log('listening on *:8080');
 });
