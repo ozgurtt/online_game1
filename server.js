@@ -32,7 +32,7 @@ app.get('/assets/swordyside.png', function(req, res){
   res.sendfile('assets/swordyside.png');
 });
 
-
+var port = process.env.PORT || 3000;
 
 var player_arr = [];
 var contains_player = false;
@@ -82,6 +82,6 @@ io.on('connection', function(socket){
   });
 });
 
-http.listen(PORT, function(){
+http.listen(port, function(){
   console.log('listening on *:8080');
 });
