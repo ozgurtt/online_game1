@@ -586,8 +586,12 @@ function checkLocation(x,y, destroy_block) {
 }
 
 function otherPlayers() {
-    other_swords.destroy();
-    other_player.destroy();
+    other_swords.forEach(function(sword){
+        sword.destroy()
+    })
+    other_players.forEach(function(player){
+        player.destroy()
+    })
     
     other_player_arr.forEach(function(player){
         if (player.id != player_id) {
@@ -598,16 +602,24 @@ function otherPlayers() {
             if (player.attacking == true) {
                 
                 if (player.facing == 1) {
-                    makeOtherSword(player.x - 25, player.y - 25, player.facing);
+                    makeOtherSword(player.x - 25, player.y - 25, player.facing)
+                 
+                    
                 }
                 else if (player.facing == 2) {
-                    makeOtherSword(player.x + 25, player.y - 25, player.facing);
+                    makeOtherSword(player.x + 25, player.y - 25, player.facing)
+            
+                    
                 }
                 else if (player.facing == 3) {
-                    makeOtherSword(player.x - 25, player.y + 25, player.facing);
+                    makeOtherSword(player.x - 25, player.y + 25, player.facing)
+              
+                    
                 }
                 else if (player.facing == 4) {
-                    makeOtherSword(player.x - 25, player.y - 25, player.facing);
+                    makeOtherSword(player.x - 25, player.y - 25, player.facing)
+              
+                    
                 }
             }
             

@@ -87,9 +87,6 @@ io.on('connection', function(socket){
   console.log("Player Connected")
   
   socket.on('player_data', function(player){// ricieves new data from players
-  if (player.attacking == true) {
-    console.log("swining")
-  }
     player.socket_id = socket.id;
     addChangePlayerArr(player);
     
