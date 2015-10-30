@@ -73,13 +73,30 @@ function addBlockArr(block) {
           //console.log(player[3] + " : " + id)
             if (stored_block.x == block.x && stored_block.y == block.y) {
               block_overlap = true
-              console.log("OVERLAP")
             }
         });
         
       if (block_overlap == false) {
         blocks_arr.push(block);
       }
+}
+
+function removeBlockArr(block) {
+  
+  var overlap_ind;
+  var is_overlap = false
+  
+    blocks_arr.forEach(function(stored_block, ind) {
+            if (stored_block.x == block.x && stored_block.y == block.y) {
+              overlap_ind = ind;
+              is_overlap = true
+              console.log("OVERLAP" );
+            }
+        });
+    
+    if (is_overlap == true) {
+      blocks_arr.splice(overlap_ind, 1);
+    }
 }
 
 
@@ -93,17 +110,21 @@ io.on('connection', function(socket){
     addChangePlayerArr(player);
     
     io.emit('player_data', player_arr); //emits the player array
-    //console.log(player_arr)
-    io.emit('blocks_data', blocks_arr); //emits the player array
+    io.emit('blocks_data', blocks_arr); //emits the block array
     
   });
   
-  socket.on('block_data', function(block){// ricieves new data from players
+  socket.on('block_data', function(block){// makes blocks
     addBlockArr(block);
-    console.log(blocks_arr);
-    io.emit('blocks_data', blocks_arr); //emits the player array
-    
+    io.emit('blocks_data', blocks_arr);
   });
+  
+  socket.on('remove_block', function(block){// deletes blocks
+    removeBlockArr(block);
+    io.emit('blocks_data', blocks_arr); //emits the player array
+  });
+  
+  
   
    socket.on('disconnect', function(){ //handles removeing players on dc
     removePlayerOnDC(socket.id);

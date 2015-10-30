@@ -212,7 +212,7 @@ function update() {
         });
         otherPlayers();
         updateBlocks();
-        console.log(blocks_arr)
+        
 	    tick = game.time.now + 10
 	}
 }
@@ -457,7 +457,7 @@ function makeBlock() {
         
         
          if (player_facing == 1) {
-            checkLocation(x, y - 25, false); //checks to see if there's a block at the location
+            checkLocation(x, y - 25); //checks to see if there's a block at the location
             
             if (block_already_placed == false) { //places it if not
                 player.block_count -=1
@@ -471,7 +471,7 @@ function makeBlock() {
             
         }
         else if (player_facing == 2) {
-            checkLocation(x + 25, y, false);
+            checkLocation(x + 25, y);
             
             if (block_already_placed == false) {
 
@@ -485,7 +485,7 @@ function makeBlock() {
             
         }
         else if (player_facing == 3) {
-            checkLocation(x,y + 25, false);
+            checkLocation(x,y + 25);
             
             if (block_already_placed == false) {
   
@@ -499,7 +499,7 @@ function makeBlock() {
             
         }
         else if (player_facing == 4) {
-            checkLocation(x - 25, y, false);
+            checkLocation(x - 25, y);
             
             if (block_already_placed == false) {
   
@@ -531,6 +531,7 @@ function destroyBlock() {
         to_add = 25 - x_leftover;
         x = x + to_add;
     }
+    
     if (y_leftover == 0) {
         
     }
@@ -546,40 +547,61 @@ function destroyBlock() {
     
     
      if (player_facing == 1) {
-        checkLocation(x, y - 25, true); //checks to see if there's a block at the location
-        
+        checkLocation(x, y - 25); //checks to see if there's a block at the location
+         if (block_already_placed == true) {
+            console.log("removing" + x + y)
+            socket.emit('remove_block', {
+                                            x: x, 
+                                            y: y - 25 
+                                        });
+        }
 
      
         
     }
     else if (player_facing == 2) {
-        checkLocation(x + 25, y, true);
-
+        checkLocation(x + 25, y);
+        if (block_already_placed == true) {
+            console.log("removing")
+            socket.emit('remove_block', {
+                                            x: x + 25, 
+                                            y: y 
+                                        });
+        }
 
         
     }
     else if (player_facing == 3) {
-        checkLocation(x,y + 25, true);
-        
+        checkLocation(x,y + 25);
+        if (block_already_placed == true) {
+            console.log("removing")
+            socket.emit('remove_block', {
+                                            x: x, 
+                                            y: y + 25 
+                                        });
+        }
 
   
         
     }
     else if (player_facing == 4) {
-        checkLocation(x - 25, y, true);
-        
+        checkLocation(x - 25, y);
+        if (block_already_placed == true) {
+            console.log("removing")
+            socket.emit('remove_block', {
+                                            x: x - 25, 
+                                            y: y 
+                                        });
+        }
         
     }
 }
 
-function checkLocation(x,y, destroy_block) {
-    blocks.forEach(function(block) {
-        if (block.body.position.x == x && block.body.position.y == y) {
+function checkLocation(x,y) {
+    blocks_arr.forEach(function(block) {
+        if (block.x == x && block.y == y) {
             block_already_placed = true;
-            if (destroy_block == true) {
-                block.destroy();
-                player.block_count +=1
-            }
+
         }
         
 
