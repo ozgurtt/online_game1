@@ -84,14 +84,17 @@ function addBlockArr(block) {
 
 
 io.on('connection', function(socket){
-  console.log("Player Connected")
+  
+  io.emit('blocks_data', blocks_arr); //emits the player array
   
   socket.on('player_data', function(player){// ricieves new data from players
+
     player.socket_id = socket.id;
     addChangePlayerArr(player);
     
     io.emit('player_data', player_arr); //emits the player array
     //console.log(player_arr)
+    io.emit('blocks_data', blocks_arr); //emits the player array
     
   });
   
