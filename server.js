@@ -35,20 +35,21 @@ app.get('/assets/swordyside.png', function(req, res){
 var port = process.env.PORT || 8080;
 
 var player_arr = [];
+var blocks_arr = [];
 var contains_player = false;
 
 
-function addChangePlayerArr(id,x,y,s) {
-    player_arr.forEach(function(player, ind) { //if the array already contains the player it will update their coords
-        if (player[0] == id) {
-            player_arr[ind][1] = x;
-            player_arr[ind][2] = y;
+function addChangePlayerArr(player) {
+    player_arr.forEach(function(stored_player, ind) { //if the array already contains the player it will update their coords
+        if (stored_player.id == player.id) {
+          
+            player_arr[ind] = player;
             contains_player = true;
         }
     });
     
     if (contains_player == false) {
-        player_arr.push([id,x,y,s]); //otherwise it will add it to the array as a new entry
+        player_arr.push(player); //otherwise it will add it to the array as a new entry
     }
     contains_player = false;
 }
@@ -57,22 +58,50 @@ function removePlayerOnDC(id) { //searches for a player to remvoe from the playe
     var index;
       player_arr.forEach(function(player, ind) {
           //console.log(player[3] + " : " + id)
-            if (player[3] == id) {
-                
-                index = ind;
+            if (player.socket_id == id) {
+              index = ind;
             }
         });
     player_arr.splice(index, 1);
+}
+
+function addBlockArr(block) {
+  
+  var block_overlap = false
+  
+    blocks_arr.forEach(function(stored_block, ind) {
+          //console.log(player[3] + " : " + id)
+            if (stored_block.x == block.x && stored_block.y == block.y) {
+              block_overlap = true
+              console.log("OVERLAP")
+            }
+        });
+        
+      if (block_overlap == false) {
+        blocks_arr.push(block);
+      }
 }
 
 
 io.on('connection', function(socket){
   console.log("Player Connected")
   
-  socket.on('player_data', function(pd){ // ricieves new data from players
-    addChangePlayerArr(pd[0], pd[1], pd[2], socket.id);
+  socket.on('player_data', function(player){// ricieves new data from players
+  if (player.attacking == true) {
+    console.log("swining")
+  }
+    player.socket_id = socket.id;
+    addChangePlayerArr(player);
     
     io.emit('player_data', player_arr); //emits the player array
+    //console.log(player_arr)
+    
+  });
+  
+  socket.on('block_data', function(block){// ricieves new data from players
+    addBlockArr(block);
+    console.log(blocks_arr);
+    io.emit('blocks_data', blocks_arr); //emits the player array
     
   });
   

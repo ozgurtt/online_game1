@@ -6,13 +6,14 @@
 
     <script src="phaser"></script>
     <script src="https://cdn.socket.io/socket.io-1.2.0.js"></script>
-    <script src="http://code.jquery.com/jquery-1.11.1.js"></script>
+   
 <script type="text/javascript">
 
 var socket = io();
 var player_id = Math.random();
 var tick = 0;
 var other_player_arr = [];
+var blocks_arr = [];
   
 var game = new Phaser.Game(800, 600, Phaser.AUTO, '', { preload: preload, create: create, update: update });
 
@@ -36,6 +37,8 @@ var sword_out_timer = 0;
 
 var block_already_placed = false;
 
+var swinging_sword = false;
+
 
 
 function create() {
@@ -52,11 +55,13 @@ function create() {
     game.camera.follow(player);
     player.body.collideWorldBounds = true;
     player.immunity = 0;
+    player.knockback = 0;
+    player.knock_back_direction = 0;
     player.dead = false
     player.respawn_timer = 0
     player.block_count = 20;
     player.max_health = 10;
-    player.current_health = 10;
+    player.health = 10;
 	
    
 
@@ -66,7 +71,7 @@ function create() {
     sword = swords.create(0, 0, 'attack');
 	sword.body.immovable = true;
 	
-	health_text = game.add.text(10, 10, String(player.current_health) + "/" + String(player.max_health), {font: "20px Arial", fill: '#a32828' });
+	health_text = game.add.text(10, 10, String(player.health) + "/" + String(player.max_health), {font: "20px Arial", fill: '#a32828' });
 	health_text.fixedToCamera = true;
 	
 	block_text = game.add.text(75, 10, String(player.block_count), {font: "20px Arial", fill: '#438e37' });
@@ -78,12 +83,17 @@ function create() {
 	other_players = game.add.group();
     other_players.enableBody = true;
     
+    other_swords = game.add.group();
+    other_swords.enableBody = true;
+    
+    makeOtherSword(100,100,1);
+    
     enemies = game.add.group();
     enemies.enableBody = true;
    
     
     //makeEnemy(100,100);
-    //makeEnemy(200,100);
+    makeEnemy(200,100);
   
 
     
@@ -94,7 +104,6 @@ function create() {
 	
 }
 
-
 function update() {
     
     //COLLISION
@@ -102,16 +111,20 @@ function update() {
 	game.physics.arcade.collide(enemies, enemies);
 	game.physics.arcade.collide(enemies, blocks)
 	game.physics.arcade.collide(player, blocks)
-	game.physics.arcade.overlap(swords, enemies, damageEnemies, null, this);
+	game.physics.arcade.collide(player, other_players)
+	game.physics.arcade.overlap(swords, enemies, damageEntity, null, this);
+	game.physics.arcade.overlap(other_swords, player, otherSwordHit, null, this);
 	
 
     
     //CHECKS IF THE PLAYER HAS ATTACKED
     if (sword_out_timer > game.time.now) {
         swingingSword()
+        swinging_sword = true;
     }
     else {
         sword.kill()
+        swinging_sword = false
     }
     
     //RUNS ENEMY AI
@@ -119,66 +132,87 @@ function update() {
     checkHealth();
     killPlayer();
     enemyAi();
-    otherPlayers();
+    
     
 	
 	if (player.dead == false) {
-    	//PLAYER MOVEMNT LOGIC
-    	player.body.velocity.x = 0;
-    	player.body.velocity.y = 0;
-    	
-        if (cursors.left.isDown){
-            player.body.velocity.x = -150;
-            player.frame = 3
-            
-            player_facing = 4;
-            
-        }
-        
-        
-        if (cursors.right.isDown){
-        	player.body.velocity.x = 150;
-        	player.frame = 1
+	    
+	    if (player.knockback < game.time.now) {
+	        
+        	//PLAYER MOVEMNT LOGIC
+        	player.body.velocity.x = 0;
+        	player.body.velocity.y = 0;
         	
-        	player_facing = 2;
-        }
-        
-    
-        if (cursors.up.isDown){
-            player.body.velocity.y = -150;
-            player.frame = 0
+            if (cursors.left.isDown){
+                player.body.velocity.x = -150;
+                player.frame = 3
+                
+                player_facing = 4;
+                
+            }
             
-            player_facing = 1;
             
-        }
-        
-        if (cursors.down.isDown){
-            player.body.velocity.y = 150;
-            player.frame = 2
+            if (cursors.right.isDown){
+            	player.body.velocity.x = 150;
+            	player.frame = 1
+            	
+            	player_facing = 2;
+            }
             
-            player_facing = 3;
-        }
         
-        if (spacebutton.isDown) {
-            sword_out_timer = game.time.now + 50
-        }
-        
-        if (q.isDown) {
-            makeBlock();
-        }
-        
-        if (e.isDown) {
-            destroyBlock();
-        }
-        
+            if (cursors.up.isDown){
+                player.body.velocity.y = -150;
+                player.frame = 0
+                
+                player_facing = 1;
+                
+            }
+            
+            if (cursors.down.isDown){
+                player.body.velocity.y = 150;
+                player.frame = 2
+                
+                player_facing = 3;
+            }
+            
+            if (spacebutton.isDown) {
+                sword_out_timer = game.time.now + 50
+            }
+            
+            if (q.isDown) {
+                makeBlock();
+            }
+            
+            if (e.isDown) {
+                destroyBlock();
+            }
+	    }
+	    else {
+	        
+	        knockbackPlayer();
+	    }
+            
 	}
 	if (tick < game.time.now) {
-	    socket.emit('player_data', [player_id, player.x, player.y]);
+	    socket.emit('player_data', {
+	                                id: player_id,
+	                                x: player.x, 
+	                                y: player.y, 
+	                                attacking: swinging_sword,
+	                                facing: player_facing,
+	                                dead: player.dead 
+	                                });
+	                                
 	    socket.on('player_data', function(pd){
             other_player_arr = pd;
-            tick = game.time.now + 10
         });
-	    
+        
+    	 socket.on('blocks_data', function(pd){
+    	    blocks_arr = pd;
+        });
+        otherPlayers();
+        updateBlocks();
+	    tick = game.time.now + 10
 	}
 }
 
@@ -226,6 +260,16 @@ function makeEnemy(x,y) {
     enemy.attack = 1;
 }
 
+function makeOtherSword(x,y,facing) {
+    if (facing == 1 || facing == 3) {
+        other_sword = other_swords.create(x,y, "attack");
+        other_sword.facing = facing;
+    }
+    else {
+        other_sword = other_swords.create(x,y, "attackside");
+        other_sword.facing = facing;
+    }
+}
 
 function enemyAi() {
     enemies.forEach(function(enemy) {
@@ -233,7 +277,7 @@ function enemyAi() {
         enemy.body.velocity.y = 0
         
         if (enemy.knockback > game.time.now) { //checks if the enemy is knocked back, else runs the logic that chases the player
-            knockbackEnemy(enemy);
+            knockbackEntity(enemy);
         }
         else if (player.dead == false) {
             
@@ -287,33 +331,51 @@ function enemyAi() {
     });
 }
 
-function damageEnemies(sword, enemy) {
-    
-    if (enemy.immunity < game.time.now){
-        enemy.health -= 1;
-        enemy.immunity = game.time.now + 200;
-        enemy.knockback = game.time.now + 300;
-        enemy.knock_back_direction = player_facing; //sets the direction the enemy will be knocked back
+function damageEntity(sword, entity) {
+
+    if (entity.immunity < game.time.now){
+        
+        entity.health -= 1;
+        entity.immunity = game.time.now + 200;
+        entity.knockback = game.time.now + 300;
+        entity.knock_back_direction = player_facing; //sets the direction the entity will be knocked back
     }
     
-    if (enemy.health < 1) {
-        enemy.kill();
+    if (entity.health < 1) {
+        entity.kill();
     }
     
 }
 
-function knockbackEnemy(enemy) { //decides what direction to knock the enemy back in
-    if (enemy.knock_back_direction == 1) {
-        enemy.body.velocity.y = -200;
+function knockbackEntity(entity) { //decides what direction to knock the entity back in
+    console.log(entity.knock_back_direction)
+    if (entity.knock_back_direction == 1) {
+        entity.body.velocity.y = -200;
     }
-    else if (enemy.knock_back_direction == 2) {
-        enemy.body.velocity.x = 200;
+    else if (entity.knock_back_direction == 2) {
+        entity.body.velocity.x = 200;
     }
-    else if (enemy.knock_back_direction == 3) {
-        enemy.body.velocity.y = 200;
+    else if (entity.knock_back_direction == 3) {
+        entity.body.velocity.y = 200;
     }
-    else if (enemy.knock_back_direction == 4) {
-        enemy.body.velocity.x = -200;
+    else if (entity.knock_back_direction == 4) {
+        entity.body.velocity.x = -200;
+    }
+}
+
+function knockbackPlayer() { //decides what direction to knock the entity back in
+    console.log(player.knock_back_direction)
+    if (player.knock_back_direction == 1) {
+        player.body.velocity.y = -200;
+    }
+    else if (player.knock_back_direction == 2) {
+        player.body.velocity.x = 200;
+    }
+    else if (player.knock_back_direction == 3) {
+        player.body.velocity.y = 200;
+    }
+    else if (player.knock_back_direction == 4) {
+        player.body.velocity.x = -200;
     }
 }
 
@@ -321,7 +383,7 @@ function playerDamage(player, enemy) {
     
     if (player.dead == false ) {
         if (player.immunity < game.time.now) {
-            player.current_health -=1;
+            player.health -=1;
             player.immunity = game.time.now + 400;
         }
     }
@@ -332,7 +394,7 @@ function checkHealth(){
          health_text.text ="Time to respawn: " +  String(player.respawn_timer - game.time.now)
     }
     else {
-        health_text.text = String(player.current_health) + "/" + String(player.max_health);
+        health_text.text = String(player.health) + "/" + String(player.max_health);
     }
     
     block_text.text = String(player.block_count)
@@ -340,7 +402,7 @@ function checkHealth(){
 }
 
 function killPlayer() {
-    if (player.current_health < 1 && player.dead == false) {
+    if (player.health < 1 && player.dead == false) {
         player.dead = true;
         player.respawn_timer = game.time.now + 3000;
     }
@@ -353,7 +415,7 @@ function killPlayer() {
 
 function respawnPlayer() {
     if (player.dead == true && player.respawn_timer < game.time.now) {
-        player.current_health = 10;
+        player.health = 10;
         player.dead = false;
         player.position.x = 0;
         player.position.y = 0;
@@ -397,10 +459,11 @@ function makeBlock() {
             checkLocation(x, y - 25, false); //checks to see if there's a block at the location
             
             if (block_already_placed == false) { //places it if not
-                block = blocks.create(x, y - 25, 'tiles');
-                block.body.immovable = true;
-                game.physics.arcade.enable(block);
                 player.block_count -=1
+                socket.emit('block_data', {
+	                                x: x, 
+	                                y: y - 25 
+	                                });
             }
     
          
@@ -410,10 +473,12 @@ function makeBlock() {
             checkLocation(x + 25, y, false);
             
             if (block_already_placed == false) {
-                block = blocks.create(x + 25, y, 'tiles');
-                block.body.immovable = true;
-                game.physics.arcade.enable(block);
+
                 player.block_count -=1
+                 socket.emit('block_data', {
+	                                x: x + 25, 
+	                                y: y 
+	                                });
             }
     
             
@@ -422,10 +487,12 @@ function makeBlock() {
             checkLocation(x,y + 25, false);
             
             if (block_already_placed == false) {
-                block = blocks.create(x, y + 25, 'tiles');
-                block.body.immovable = true;
-                game.physics.arcade.enable(block);
+  
                 player.block_count -=1
+                 socket.emit('block_data', {
+	                                x: x, 
+	                                y: y + 25 
+	                                });
             }
       
             
@@ -434,10 +501,12 @@ function makeBlock() {
             checkLocation(x - 25, y, false);
             
             if (block_already_placed == false) {
-                block = blocks.create(x - 25, y, 'tiles');
-                block.body.immovable = true;
-                game.physics.arcade.enable(block);
+  
                 player.block_count -=1
+                socket.emit('block_data', {
+	                                x: x - 25, 
+	                                y: y 
+	                                });
             }
             
         }
@@ -517,15 +586,62 @@ function checkLocation(x,y, destroy_block) {
 }
 
 function otherPlayers() {
-    other_players.forEach(function(player){
-        player.destroy()
-    })
+    other_swords.destroy();
+    other_player.destroy();
+    
     other_player_arr.forEach(function(player){
-        if (player[0] != player_id) {
-            other_player = other_players.create(player[1], player[2], "player");
+        if (player.id != player_id) {
+            other_player = other_players.create(player.x, player.y, "player");
             other_player.body.collideWorldBounds = true;
+            other_player.frame = player.facing - 1;
+            
+            if (player.attacking == true) {
+                
+                if (player.facing == 1) {
+                    makeOtherSword(player.x - 25, player.y - 25, player.facing);
+                }
+                else if (player.facing == 2) {
+                    makeOtherSword(player.x + 25, player.y - 25, player.facing);
+                }
+                else if (player.facing == 3) {
+                    makeOtherSword(player.x - 25, player.y + 25, player.facing);
+                }
+                else if (player.facing == 4) {
+                    makeOtherSword(player.x - 25, player.y - 25, player.facing);
+                }
+            }
+            
         }
     })
+}
+
+function updateBlocks() {
+
+    
+    blocks.forEach(function(block){
+        block.destroy()
+    })
+    
+    blocks_arr.forEach(function(block){
+        block = blocks.create(block.x, block.y, 'tiles');
+        block.body.immovable = true;
+        
+    })
+    
+    
+}
+
+function otherSwordHit(yes, osword) {
+
+    if (player.immunity < game.time.now){
+        
+
+        player.immunity = game.time.now + 200;
+        player.knockback = game.time.now + 500;
+        player.knock_back_direction = osword.facing; //sets the direction the entity will be knocked back
+    }
+    
+    
 }
 
 </script>
