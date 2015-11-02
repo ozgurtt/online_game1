@@ -1,0 +1,11 @@
+Go through arr
+    IF go through player arr IF TARGET NULL
+        check if they're in range IF TARGET NULL
+        make the target the player if they are
+    
+        
+        
+        
+    run the chasing player logic if a player is found
+    otherwise run the idle logic
+    

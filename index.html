@@ -311,6 +311,7 @@ function enemyAi() {
         
         }
         if (enemy.alerted_timer < game.time.now) { //wandering logic
+        
             if (enemy.change_direction_timer < game.time.now) {
                 enemy.direction = Math.floor(Math.random() * (5 - 1) + 1); //random direction between 1-4
                 enemy.change_direction_timer = game.time.now + 5000;
