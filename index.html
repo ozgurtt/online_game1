@@ -14,6 +14,7 @@ var player_id = Math.random();
 var tick = 0;
 var other_player_arr = [];
 var blocks_arr = [];
+var enemies_arr = [];
   
 var game = new Phaser.Game(800, 600, Phaser.AUTO, '', { preload: preload, create: create, update: update });
 
@@ -210,8 +211,13 @@ function update() {
     	 socket.on('blocks_data', function(pd){
     	    blocks_arr = pd;
         });
+        
+        socket.on('enemies_data', function(pd){
+    	    enemies_arr = pd;
+        });
         otherPlayers();
         updateBlocks();
+        updateEnemies();
         
 	    tick = game.time.now + 10
 	}
@@ -248,7 +254,7 @@ function swingingSword() {
     
 }
 
-function makeEnemy(x,y) {
+function makeEnemy(x,y, id) {
     enemy = enemies.create(x, y, "enemy");
     enemy.body.collideWorldBounds = true;
     enemy.alerted_timer = 0; //how long after chasing the player before it returns to normal behaviour
@@ -259,6 +265,7 @@ function makeEnemy(x,y) {
     enemy.knockback = 0;
     enemy.knock_back_direction = 0;
     enemy.attack = 1;
+    enemy.id = id;
 }
 
 function makeOtherSword(x,y,facing) {
@@ -678,6 +685,17 @@ function otherSwordHit(yes, osword) {
     }
     
     
+}
+
+function updateEnemies() {
+  enemies.forEach(function(enemy){ //iterates through the enemies and destroys the sprites so they can be redrawn
+        enemy.destroy();
+    });  
+    
+    enemies_arr.forEach(function(enemy){
+        makeEnemy(enemy.x, enemy.y, enemy.id);
+        
+    });
 }
 
 </script>

@@ -37,7 +37,22 @@ app.get('/assets/swordyside.png', function(req, res){
 var port = process.env.PORT || 8080;
 var player_arr = [];
 var blocks_arr = [];
-var enemies_arr = [];
+var enemies_arr = [{
+  id:345345,
+  x:100,
+  y:100,
+  x_velocity: 100,
+  x_velocity: 100,
+  alerted_timer:0,
+  target:null,
+  direction:1,
+  change_direction_timer:0,
+  health: 0,
+  immunity: 0,
+  knockback: 0,
+  knock_back_direction: 1,
+  attack: 1
+}];
 
 
 
@@ -102,24 +117,6 @@ function removeBlockArr(block) {
     }
 }
 
-/*[{
-  id:345345,
-  x:100,
-  y:100,
-  x_velocity: 100,
-  x_velocity: 100,
-  alerted_timer:0,
-  target:null,
-  direction:1,
-  change_direction_timer:0,
-  health: 0,
-  immunity: 0,
-  knockback: 0,
-  knock_back_direction: 1,
-  attack: 1
-}]
-*/
-  
   
 function enemyLogic() {
  enemies_arr.forEach(function(enemy){
@@ -148,11 +145,11 @@ function enemyLogic() {
           
           if ((player.x > enemy.x) && (player.x < enemy.x + 200)) {//x velocity logic
               enemy.alerted_timer = Date.now() + 300;
-              enemy.x_velocity = 50;
+              enemy.x_velocity = 2;
           }
           else if ((player.x < enemy.x) && (player.x > enemy.x - 200)) {
               enemy.alerted_timer = Date.now() + 300;
-              enemy.x_velocity = -50;
+              enemy.x_velocity = -2;
           }
         }
               
@@ -161,44 +158,70 @@ function enemyLogic() {
           
           if ((player.y > enemy.y) && (player.y < enemy.y + 200)) { //y velocity logic
               enemy.alerted_timer = Date.now() + 300;
-              enemy.y_velocity = 50;
+              enemy.y_velocity = 2;
           }
           else if ((player.y < enemy.y) && (player.y > enemy.y - 200)) {
               enemy.alerted_timer = Date.now() + 300;
-              enemy.y_velocity = -50;
+              enemy.y_velocity = -2;
           }
         }
         
-        if (still_in_range == false) { enemy.target = null } //resets the enemies target
+        
+        if (still_in_range == false || player.dead == true) { enemy.target = null } //resets the enemies target
       }
     });
     
-    if (enemy.alerted_timer < game.time.now) { //Wandering logic, will kick in if the alerted timer is less then the current time
+    if (enemy.alerted_timer < Date.now()) { //Wandering logic, will kick in if the alerted timer is less then the current time
       enemy.target = null; //reset the enemy target, this is a fail safe in case someone disconnects and the array iteration doesn't catch they're out ofrange
       
-      if (enemy.change_direction_timer < game.time.now) { //will change the enemies wandering direction if 5 seconds have passed
+      if (enemy.change_direction_timer < Date.now()) { //will change the enemies wandering direction if 5 seconds have passed
           enemy.direction = Math.floor(Math.random() * (5 - 1) + 1); //random direction between 1-4
-          enemy.change_direction_timer = game.time.now + 5000;
+          enemy.change_direction_timer = Date.now() + 5000;
       }
       
       if (enemy.direction == 1) { //applies movement based on direction
-          enemy.y_velocity = -20;
+          enemy.y_velocity = -1;
       }
       else if (enemy.direction == 2) {
-          enemy.x_velocity = 20;
+          enemy.x_velocity = 1;
       }
       else if (enemy.direction == 3) {
-          enemy.y_velocity = 20;
+          enemy.y_velocity = 1;
       }
       else if (enemy.direction == 4) {
-          enemy.x_velocity = -20;
+          enemy.x_velocity = -1;
       }
     }
     
+    player_arr.forEach(function(player){  //checking for overlaps
     
- 
+      if ( ((enemy.x + 25 + enemy.x_velocity > player.x ) && ( enemy.x + enemy.x_velocity < player.x + 25 )) ) 
+      {
+        if ( ( enemy.y + 25 > player.y ) && ( enemy.y < player.y + 25) ) {
+          enemy.x_velocity = 0;
+        }
+      }
+      
+      if ( ((enemy.y + 25 + enemy.y_velocity > player.y ) && ( enemy.y + enemy.y_velocity < player.y + 25 )) ) 
+      {
+        if ( ( enemy.x + 25 > player.x ) && ( enemy.x < player.x + 25) ) {
+          enemy.y_velocity = 0;
+        }
+      }
+    
+    });
+    
+    enemy.x = enemy.x + enemy.x_velocity;
+    enemy.y = enemy.y + enemy.y_velocity;
+    
+    setTimeout(function(){
+        enemyLogic();
+    }, 34);
+    
  });
 }
+
+enemyLogic();
 
 io.on('connection', function(socket){
   
@@ -207,9 +230,11 @@ io.on('connection', function(socket){
 
     player.socket_id = socket.id;
     addChangePlayerArr(player);
+    console.log(player_arr)
     
     io.emit('player_data', player_arr); //emits the player array
     io.emit('blocks_data', blocks_arr); //emits the block array
+    io.emit('enemies_data', enemies_arr); //emits the enemy array
     
   });
   
