@@ -93,11 +93,6 @@ function create() {
     enemies.enableBody = true;
    
     
-    //makeEnemy(100,100);
-    //makeEnemy(200,100);
-  
-
-    
     cursors = game.input.keyboard.createCursorKeys();
     spacebutton = game.input.keyboard.addKey(Phaser.Keyboard.SPACEBAR);
     q = game.input.keyboard.addKey(Phaser.Keyboard.Q);
@@ -132,7 +127,6 @@ function update() {
     respawnPlayer();
     checkHealth();
     killPlayer();
-    enemyAi();
     
     
 	
@@ -254,7 +248,7 @@ function swingingSword() {
     
 }
 
-function makeEnemy(x,y, id) {
+function makeEnemy(x,y,id) {
     enemy = enemies.create(x, y, "enemy");
     enemy.body.collideWorldBounds = true;
     enemy.alerted_timer = 0; //how long after chasing the player before it returns to normal behaviour
@@ -279,80 +273,14 @@ function makeOtherSword(x,y,facing) {
     }
 }
 
-function enemyAi() {
-    enemies.forEach(function(enemy) {
-        enemy.body.velocity.x = 0
-        enemy.body.velocity.y = 0
-        
-        if (enemy.knockback > game.time.now) { //checks if the enemy is knocked back, else runs the logic that chases the player
-            knockbackEntity(enemy);
-        }
-        else if (player.dead == false) {
-            
-        
-            if (((player.y > enemy.y) && (player.y < enemy.y + 200)) || ((player.y < enemy.y) && (player.y > enemy.y - 200))) {
-                
-                
-                if ((player.x > enemy.x) && (player.x < enemy.x + 200)) {
-                    enemy.alerted_timer = game.time.now + 300;
-                    enemy.body.velocity.x = 50;
-                }
-                else if ((player.x < enemy.x) && (player.x > enemy.x - 200)) {
-                    enemy.alerted_timer = game.time.now + 300;
-                    enemy.body.velocity.x = -50;
-                }
-            }
-            
-            if (((player.x > enemy.x) && (player.x < enemy.x + 200)) || ((player.x < enemy.x) && (player.x > enemy.x - 200))) {
-                
-                
-                if ((player.y > enemy.y) && (player.y < enemy.y + 200)) {
-                    enemy.alerted_timer = game.time.now + 300;
-                    enemy.body.velocity.y = 50;
-                }
-                else if ((player.y < enemy.y) && (player.y > enemy.y - 200)) {
-                    enemy.alerted_timer = game.time.now + 300;
-                    enemy.body.velocity.y = -50;
-                }
-            }
-        
-        }
-        if (enemy.alerted_timer < game.time.now) { //wandering logic
-        
-            if (enemy.change_direction_timer < game.time.now) {
-                enemy.direction = Math.floor(Math.random() * (5 - 1) + 1); //random direction between 1-4
-                enemy.change_direction_timer = game.time.now + 5000;
-            }
-            
-            if (enemy.direction == 1) {
-                enemy.body.velocity.y = -20
-            }
-            else if (enemy.direction == 2) {
-                enemy.body.velocity.x = 20
-            }
-            else if (enemy.direction == 3) {
-                enemy.body.velocity.y = 20
-            }
-            else if (enemy.direction == 4) {
-                enemy.body.velocity.x = -20
-            }
-        }
-    });
-}
 
 function damageEntity(sword, entity) {
 
-    if (entity.immunity < game.time.now){
-        
-        entity.health -= 1;
-        entity.immunity = game.time.now + 200;
-        entity.knockback = game.time.now + 300;
-        entity.knock_back_direction = player_facing; //sets the direction the entity will be knocked back
+    if (entity.immunity < game.time.now)
+    {
+     socket.emit('damage_enemy', {facing: player_facing, id: entity.id});
     }
-    
-    if (entity.health < 1) {
-        entity.kill();
-    }
+
     
 }
 
